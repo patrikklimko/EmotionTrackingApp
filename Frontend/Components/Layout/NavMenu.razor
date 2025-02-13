@@ -1,0 +1,91 @@
+﻿@using DTO
+@using Frontend.Services
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthService
+@inject NavigationManager NavigationManager
+
+<div class="top-row ps-3 navbar navbar-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="">Emotions Tracker</a>
+  </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler"/>
+
+<div class="nav-scrollable d-flex flex-column"
+     onclick="document.querySelector('.navbar-toggler').click()">
+  <nav class="flex-column flex-grow-1">
+    <AuthorizeView>
+      <NotAuthorized>
+        <div class="nav-item px-3">
+          <NavLink class="nav-link" href="register">
+            <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register
+          </NavLink>
+        </div>
+        <div class="nav-item px-3">
+          <NavLink class="nav-link" href="login">
+            <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Login
+          </NavLink>
+        </div>
+      </NotAuthorized>
+
+      <Authorized>
+        <div class="nav-item px-3">
+          <NavLink class="nav-link" href="/CheckIn/">
+            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Emotion CheckIns
+          </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+          <NavLink class="nav-link" href="/Friends/">
+            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Friends
+          </NavLink>
+        </div>
+        
+        <div class="nav-item px-3">
+          <NavLink class="nav-link" href="/Analytics/">
+            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Analytics
+          </NavLink>
+        </div>
+      </Authorized>
+    </AuthorizeView>
+  </nav>
+  <AuthorizeView>
+    <Authorized>
+      <div class="nav-item px-3 mt-auto"
+           style="background-color: rgba(248, 249, 250, 0.2); padding: 1rem;">
+        <span class="nav-link disabled">
+          <i class="bi bi-person-circle"></i> 
+          <span style="margin-right: 35px;">@context.User?.Identity?.Name</span>
+          <span>@($"{user?.User?.Streak} 🔥")</span>
+        </span>
+        <button class="btn btn-outline-light btn-sm w-100 mt-2" @onclick="NavigateToChangePassword">
+          Change Password
+        </button>
+        <button class="btn btn-outline-light btn-sm w-100 mt-2" @onclick="Logout">Logout</button>
+      </div>
+    </Authorized>
+  </AuthorizeView>
+</div>
+
+@code
+{
+  private UserWithTokenDto user;
+
+  protected override async Task OnInitializedAsync()
+  {
+    user = await ((AuthService)AuthService).GetAuth();
+  }
+
+  public async Task Logout()
+  {
+    await ((AuthService)AuthService).Logout();
+    NavigationManager.NavigateTo("login", true);
+  }
+
+  public void NavigateToChangePassword()
+  {
+    NavigationManager.NavigateTo("ChangePassword");
+  }
+}

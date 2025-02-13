@@ -1,0 +1,111 @@
+@page "/CheckIn/Create/{color}/{emotion}"
+@using DTO
+@using Frontend.Services
+@using Frontend.Services.Interfaces
+@using Microsoft.AspNetCore.Authorization
+@using Frontend.Components.Shared
+@inject IEmotionCheckInService EmotionCheckInService
+@inject IUserTagsService UserTagsService
+@inject NavigationManager NavigationManager
+
+<div class="container mt-4">
+  <h3>Create Emotion Check-In</h3>
+  <form method="post" @onsubmit="Submit">
+    <AntiforgeryToken/>
+    <div class="mb-3">
+      <label for="description" class="form-label">Description</label>
+      <input type="text" class="form-control" id="description" placeholder="Enter Description" @bind="description">
+      <small id="emailHelp" class="form-text text-muted">Describe what were you doing.</small>
+    </div>
+    <div class="mb-3">
+      <h4>What</h4>
+      <TagAdd Tags="whatTags" ExistingTags="existingWhatTags" TagsChanged="TagsChanged"></TagAdd>
+      <TagPicker Tags="whatTags" TagType="TagType.WHAT" TagsChanged="TagsChanged"></TagPicker>
+      <TagDisplay Tags="whatTags" OnTagRemoved="TagRemoved"></TagDisplay>
+    </div>
+    <div class="mb-3">
+      <h4>With</h4>
+      <TagAdd Tags="withTags" ExistingTags="existingWithTags" TagsChanged="TagsChanged"></TagAdd>
+      <TagPicker Tags="withTags" TagType="TagType.WITH" TagsChanged="TagsChanged"></TagPicker>
+      <TagDisplay Tags="withTags" OnTagRemoved="TagRemoved"></TagDisplay>
+    </div>
+    <div class="mb-3">
+      <h4>Where</h4>
+      <TagAdd Tags="whereTags" ExistingTags="existingWhereTags" TagsChanged="TagsChanged"></TagAdd>
+      <TagPicker Tags="whereTags" TagType="TagType.WHERE" TagsChanged="TagsChanged"></TagPicker>
+      <TagDisplay Tags="whereTags" OnTagRemoved="TagRemoved"></TagDisplay>
+    </div>
+    <button type="submit" class="btn btn-outline-primary">Submit</button>
+  </form>
+</div>
+
+@code {
+  [Parameter] public required string color { get; set; }
+  [Parameter] public required string emotion { get; set; }
+  [Parameter] public string description { get; set; }
+
+  List<TagDto> whatTags = new List<TagDto>();
+  List<TagDto> withTags = new List<TagDto>();
+  List<TagDto> whereTags = new List<TagDto>();
+
+  List<TagDto> existingWhatTags = new List<TagDto>();
+  List<TagDto> existingWithTags = new List<TagDto>();
+  List<TagDto> existingWhereTags = new List<TagDto>();
+
+  protected override async Task OnInitializedAsync()
+  {
+    var existingTags = await UserTagsService.GetAll();
+
+    existingWhatTags = existingTags.Where(t => t.Type == TagType.WHAT).ToList();
+    existingWithTags = existingTags.Where(t => t.Type == TagType.WITH).ToList();
+    existingWhereTags = existingTags.Where(t => t.Type == TagType.WHERE).ToList();
+  }
+
+  private async Task TagsChanged(List<TagDto> tags)
+  {
+    await InvokeAsync(StateHasChanged);
+  }
+
+  private async Task TagRemoved(TagDto tag)
+  {
+    if (tag.Type == TagType.WHAT)
+    {
+      existingWhatTags.Add(tag);
+      whatTags.Remove(tag);
+    }
+    else if (tag.Type == TagType.WITH)
+    {
+      existingWithTags.Add(tag);
+      withTags.Remove(tag);
+    }
+    else if (tag.Type == TagType.WHERE)
+    {
+      existingWhereTags.Add(tag);
+      whereTags.Remove(tag);
+    }
+
+    await TagsChanged(whatTags);
+    await TagsChanged(withTags);
+    await TagsChanged(whereTags);
+  }
+
+  private async Task Submit()
+  {
+    var combinedTags = new List<TagDto>();
+
+    combinedTags.AddRange(whatTags);
+    combinedTags.AddRange(withTags);
+    combinedTags.AddRange(whereTags);
+
+    var data = new EmotionCheckInCreateDto
+    {
+      Emotion = emotion,
+      Description = description,
+      Tags = combinedTags
+    };
+
+    await EmotionCheckInService.Create(data);
+
+    NavigationManager.NavigateTo($"/CheckIn/");
+  }
+}
